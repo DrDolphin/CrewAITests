@@ -15,50 +15,116 @@ haiku3 = ChatAnthropic(model="claude-3-haiku-20240307", max_tokens=4096)
 sonnet35 = ChatAnthropic(model="claude-3-5-sonnet-20240620", max_tokens=4096)
 opus3 = ChatAnthropic(model="claude-3-opus-20240229", max_tokens=4096)
 
-layer_one = Agent(
-    role="question_handler",
-    goal=(
-       "Evaluate the given prompt: {prompt}. Decide whether to answer it directly or delegate it to the researcher for further investigation. "
-       "Provide a detailed and accurate answer, either by using your own expertise or by incorporating the findings from the researcher."
-    ),
-    verbose=True,
-    memory=True,
-    backstory=(
-        "A skilled question handler responsible for evaluating prompts and determining the best approach to answer them. "
-        "You must follow these steps to ensure clarity and effectiveness:"
-        "\n1. Assess the prompt to determine its complexity."
-        "\n2. If the question is straightforward (can be answered within two paragraphs or less) and within your expertise, answer it directly."
-        "\n3. If the question is complex (requires detailed research or spans multiple topics), delegate it to the researcher agent."
-        "\n4. Ensure that every answer is clear, concise, and supported by reliable sources."
-        "\n5. Provide URLs to the sources used for gathering information in every answer."
-        "\n6. Aim for answers to be thorough yet concise, generally not exceeding 500 words unless necessary."
-        "\nYour role is to ensure every question is answered comprehensively, accurately, and efficiently, leveraging the researcher agent when needed."
-    ),
+# Main delegator agent
+delegator_agent = Agent(
+    role="Task Delegator",
+    goal="Analyze user input and delegate to the appropriate specialized agent",
+    backstory="You are the main point of contact for the Notion helper. Your job is to understand the user's request and delegate to the right specialized agent.",
     allow_delegation=True,
+    verbose=True,
     llm=haiku3
 )
 
-researcher = Agent(
-    role="researcher",
-    goal=(
-        "Perform deep and comprehensive internet searches on a given topic using the search_tool. "
-        "Then, extract detailed information from the returned sites using the web_rag_tool. "
-        "Always provide URLs to the sources for every piece of information included in your answer."
-    ),
+# Specialized agents
+chore_agent = Agent(
+    role="Chore Template Specialist",
+    goal="Fill out the chore template with provided information",
+    backstory="""
+You are an expert in organizing and documenting chores. Your task is to fill out the chore template accurately.
+
+Chore: [Chore Title]
+## Description
+
+- [Description]
+
+## Steps
+
+- [ ]  Step 1: [Step1]
+- [ ]  Step 2: [Step2]
+- [ ]  Step 3: [Step3]
+
+## Estimated Time
+
+- [EstimatedTime]
+
+## Additional Notes
+
+- [AdditionalNotes]
+""",
     verbose=True,
-    memory=True,
-    backstory=(
-        "You are a seasoned researcher with a deep understanding of effective search techniques. "
-        "You are experienced in using various search tools and resources to gather detailed and reliable information. "
-        "Follow these steps carefully:"
-        "\n1. Start by performing a broad search on the given topic using the search_tool."
-        "\n2. Collect and review the top relevant sites from your search."
-        "\n3. Use the web_rag_tool to extract detailed information from these sites."
-        "\n4. Make sure to gather comprehensive and accurate data."
-        "\n5. Always include URLs to every source you used in your final answer."
-        "\nYour goal is to ensure that every answer is well-supported by reliable sources, providing URLs for verification."
-    ),
-    tools=[search_tool, web_rag_tool],
-    allow_delegation=False,
     llm=haiku3
 )
+
+bug_agent = Agent(
+    role="Bug Template Specialist",
+    goal="Fill out the bug template with provided information",
+    backstory="""
+You are an expert in documenting software bugs. Your task is to fill out the bug template accurately.
+
+Bug Fix: [BugTitle]
+**Reported By**: [ReporterName]
+
+**Description**: [Description]
+
+**Steps to Reproduce**:
+
+- [Step1]
+- [Step2]
+
+**PBI Links**: [PBILink] 
+
+**Commit Links**: [CommitLink]
+""",
+    verbose=True,
+    llm=haiku3
+)
+
+feature_agent = Agent(
+    role="Feature Template Specialist",
+    goal="Fill out the new feature template with provided information",
+    backstory="""
+You are an expert in planning and documenting new software features. Your task is to fill out the new feature template accurately.
+
+New Feature: [FeatureName]
+**Date**: [StartDate] - [EndDate]
+
+**Requirement Doc**: [RequirementDocLink]
+
+**Technical Specs**: [TechnicalSpecsLink]
+
+**Tasks Breakdown**:
+
+- [ ]  [Task1]
+- [ ]  [Task2]
+- [ ]  [Task3]
+
+**Dependencies**: [Dependencies]
+
+**Progress Tracking**: [ProgressTrackingLink]
+""",
+    verbose=True,
+    llm=haiku3
+)
+
+support_agent = Agent(
+    role="Support Template Specialist",
+    goal="Fill out the support template with provided information",
+    backstory="""
+You are an expert in documenting customer support issues. Your task is to fill out the support template accurately.
+
+Support: [SupportTicketTitle]
+**Description**: [Description]
+
+**Steps to Reproduce**:
+
+- [Step1]
+- [Step2]
+
+**Triage Links**: [TriageLink] 
+
+**Notes**: [Notes]
+""",
+    verbose=True,
+    llm=haiku3
+)
+
